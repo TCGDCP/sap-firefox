@@ -25,7 +25,7 @@ on:
         default: ''
 
 env:
-  DOCKER_IMAGE: myyelee/firefoxvnc:latest
+  DOCKER_IMAGE: ghcr.io/mytcgd/firefoxvnc:latest
   MEMORY: 2G
 
 jobs:
@@ -87,9 +87,9 @@ jobs:
         # 分辨率和 VNC 密码
         cf set-env ${{ env.APP_NAME }} VNC_PASSWORD "${{ secrets.VNC_PASSWORD }}"
         cf set-env ${{ env.APP_NAME }} RESOLUTION "${{ secrets.RESOLUTION }}"
-        cf set-env ${{ env.APP_NAME }} GITHUB_USER "${{ secrets.GITHUB_USER }}"
-        cf set-env ${{ env.APP_NAME }} GITHUB_REPO "${{ secrets.GITHUB_REPO }}"
-        cf set-env ${{ env.APP_NAME }} GITHUB_TOKEN "${{ secrets.GITHUB_TOKEN }}"
+        cf set-env ${{ env.APP_NAME }} GBACKUP_USER "${{ secrets.GBACKUP_USER }}"
+        cf set-env ${{ env.APP_NAME }} GBACKUP_REPO "${{ secrets.GBACKUP_REPO }}"
+        cf set-env ${{ env.APP_NAME }} GBACKUP_TOKEN "${{ secrets.GBACKUP_TOKEN }}"
 
         # 从 .env 文件读取（自动注入）
         if [ -f .env ]; then
