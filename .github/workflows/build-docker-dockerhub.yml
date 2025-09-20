@@ -16,8 +16,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3.0.0
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
 
       # 构建并推送镜像
       - name: Build and push Docker image
