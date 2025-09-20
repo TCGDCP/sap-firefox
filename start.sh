@@ -257,7 +257,7 @@ case "$AUTO_RESTORE" in
     fi
     ;;
   "NO" )
-    echo "⏰ 不执行自动备份... 如需要设置 AUTO_RESTORE="YES""
+    echo "⏰ 不执行自动还原... 如需启用自动还原，请设置环境变量: AUTO_RESTORE=YES"
     ;;
 esac
 
@@ -355,7 +355,7 @@ case "$AUTO_BACKUP" in
     done &
     ;;
   "NO" )
-    echo "⏰ 不执行定时备份... 如需要设置 AUTO_BACKUP="YES""
+    echo "⏰ 不执行定时备份... 如需启用定时备份，请设置环境变量: AUTO_BACKUP=YES"
     ;;
 esac
 
