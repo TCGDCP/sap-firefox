@@ -300,19 +300,6 @@ Xvfb :0 -screen 0 ${VNC_WIDTH}x${VNC_HEIGHT}x${VNC_DEPTH} \
     -nolisten tcp \
     -noreset \
     -ac \
-    -pixdepths 8 16 24 32 \
-    -cc 4 \
-    -verbose \
-    > /tmp/xvfb.log 2>&1 &
-
-echo "启动X虚拟帧缓冲区 ${RESOLUTION}..."
-Xvfb :0 -screen 0 ${VNC_WIDTH}x${VNC_HEIGHT}x${VNC_DEPTH} \
-    +extension RANDR \
-    +extension GLX \
-    +extension RENDER \
-    -nolisten tcp \
-    -noreset \
-    -ac \
     > /tmp/xvfb.log 2>&1 &
 
 # 等待Xvfb启动
