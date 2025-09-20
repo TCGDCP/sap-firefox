@@ -3,6 +3,8 @@ FROM alpine:latest
 # 安装所有必要的软件包，并在同一指令中清理缓存
 RUN apk update && \
     apk add --no-cache \
+        mesa-dri-gallium \
+        libpulse \
         curl \
         xdotool \
         xvfb \

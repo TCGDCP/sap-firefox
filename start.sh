@@ -6,7 +6,8 @@ RESOLUTION=${RESOLUTION:-"1280x800"}
 GBACKUP_USER=${GBACKUP_USER:-""}
 GBACKUP_REPO=${GBACKUP_REPO:-""}
 GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-BACKUP_DIR="/home/vncuser/firefox-backup"
+AUTO_BACKUP=${AUTO_BACKUP:-"YES"} # YES or NO
+AUTO_RESTORE=${AUTO_RESTORE:-"YES"} # YES or NO
 
 # 默认端口（Cloud Foundry 提供时使用 $PORT，否则默认 8080）
 PORT=${PORT:-"8080"}
@@ -23,35 +24,6 @@ FIREFOX_HEIGHT=$VNC_HEIGHT
 
 # 创建Firefox配置文件
 mkdir -p ~/.mozilla/firefox
-cat > ~/.mozilla/firefox/user.js << 'EOL'
-// 禁用硬件加速和复杂渲染
-user_pref("layers.acceleration.disabled", true);
-user_pref("gfx.webrender.all", false);
-user_pref("gfx.webrender.enabled", false);
-user_pref("gfx.direct2d.disabled", true);
-
-// 提高UI响应性
-user_pref("ui.submenuDelay", 0);
-user_pref("ui.dragThresholdX", 1);
-user_pref("ui.dragThresholdY", 1);
-user_pref("ui.click_hold_context_menus", false);
-
-// 减少内存使用和提高性能
-user_pref("browser.cache.memory.enable", true);
-user_pref("browser.cache.memory.capacity", 32768);
-user_pref("content.process.count", 1);
-user_pref("browser.tabs.remote.autostart", false);
-
-// 禁用不必要的功能
-user_pref("extensions.pocket.enabled", false);
-user_pref("browser.shell.checkDefaultBrowser", false);
-user_pref("browser.startup.page", 0);
-
-// 网络优化
-user_pref("network.http.pipelining", true);
-user_pref("network.http.proxy.pipelining", true);
-user_pref("network.http.pipelining.maxrequests", 8);
-EOL
 
 # GitHub备份/还原功能
 backup_restore_firefox() {
@@ -66,6 +38,7 @@ backup_restore_firefox() {
 
     local repo_url="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
     local profile_dir="$HOME/.mozilla/firefox"
+    local temp_dir="/tmp/firefox-git-backup"
 
     case $action in
         "backup")
@@ -73,50 +46,28 @@ backup_restore_firefox() {
             echo "仓库: ${GBACKUP_USER}/${GBACKUP_REPO}"
 
             if [ -d "$profile_dir" ]; then
-                # 创建备份目录
-                mkdir -p "$BACKUP_DIR/firefox-profile"
+                # 创建临时目录用于Git操作
+                rm -rf "$temp_dir"
+                mkdir -p "$temp_dir"
+                cd "$temp_dir"
 
-                # 复制配置文件到备份目录
+                # 初始化Git仓库
+                echo "初始化Git仓库..."
+                git init
+                git config user.email "firefox-backup@docker.container"
+                git config user.name "Firefox Backup Bot"
+                git config init.defaultBranch main
+
+                # 复制Firefox配置文件（排除缓存文件）
+                echo "复制Firefox配置文件..."
                 rsync -av --delete --exclude='Cache' --exclude='cache2' --exclude='thumbnails' \
-                    "$profile_dir/" "$BACKUP_DIR/firefox-profile/"
+                    "$profile_dir/" ./
 
                 # 添加备份信息文件
-                echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/backup-info.txt"
-                echo "容器ID: $(hostname)" >> "$BACKUP_DIR/backup-info.txt"
-                echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "$BACKUP_DIR/backup-info.txt"
-                echo "分辨率: ${RESOLUTION}" >> "$BACKUP_DIR/backup-info.txt"
-
-                # 进入备份目录操作
-                cd "$BACKUP_DIR"
-
-                # 初始化Git仓库（如果不存在）
-                if [ ! -d ".git" ]; then
-                    echo "初始化Git仓库..."
-                    git init
-                    # 设置Git用户信息
-                    git config user.email "firefox-backup@docker.container"
-                    git config user.name "Firefox Backup Bot"
-                    # 设置默认分支为main（适应GitHub新标准）
-                    git config init.defaultBranch main
-
-                    # 创建初始提交
-                    git add .
-                    git commit -m "初始提交: 创建备份仓库 $(date '+%Y-%m-%d %H:%M:%S')"
-
-                    # 添加远程仓库
-                    git remote add origin "$repo_url"
-                    echo "✅ 本地Git仓库初始化完成"
-                else
-                    # 确保用户信息正确设置
-                    git config user.email "firefox-backup@docker.container"
-                    git config user.name "Firefox Backup Bot"
-                fi
-
-                # 设置远程仓库URL
-                git remote set-url origin "$repo_url"
-
-                # 获取当前分支名称
-                CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
+                echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "backup-info.txt"
+                echo "容器ID: $(hostname)" >> "backup-info.txt"
+                echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "backup-info.txt"
+                echo "分辨率: ${RESOLUTION}" >> "backup-info.txt"
 
                 # 提交更改
                 echo "提交更改到GitHub..."
@@ -126,31 +77,33 @@ backup_restore_firefox() {
                 if ! git diff --staged --quiet; then
                     git commit -m "Firefox备份 $(date '+%Y-%m-%d %H:%M:%S')"
 
-                    # 尝试推送，处理不同的分支名称情况
+                    # 添加远程仓库并推送
+                    git remote add origin "$repo_url"
+
                     echo "推送更改到远程仓库..."
-                    if git push -u origin "$CURRENT_BRANCH"; then
-                        echo "✅ 备份成功推送到 ${GBACKUP_USER}/${GBACKUP_REPO} (分支: $CURRENT_BRANCH)"
+                    if git push -u origin main; then
+                        echo "✅ 备份成功推送到 ${GBACKUP_USER}/${GBACKUP_REPO} (分支: main)"
                     else
                         echo "⚠ 推送失败，尝试强制推送..."
-                        if git push -f origin "$CURRENT_BRANCH"; then
+                        if git push -f origin main; then
                             echo "✅ 强制推送完成"
                         else
                             echo "❌ 强制推送也失败，请检查："
                             echo "   - GitHub Token 权限"
                             echo "   - 仓库是否存在: ${GBACKUP_USER}/${GBACKUP_REPO}"
                             echo "   - 网络连接"
-                            # 显示前几行错误信息
-                            git push -f origin "$CURRENT_BRANCH" 2>&1 | head -3
+                            git push -f origin main 2>&1 | head -3
                         fi
                     fi
 
-                    echo "📦 备份大小: $(du -sh firefox-profile | cut -f1)"
+                    echo "📦 备份大小: $(du -sh . | cut -f1)"
                 else
                     echo "⚠ 没有检测到文件更改，跳过提交"
                 fi
 
-                # 返回原目录
-                cd - > /dev/null
+                # 清理临时目录
+                cd /tmp
+                rm -rf "$temp_dir"
 
             else
                 echo "⚠ Firefox配置文件目录不存在，跳过备份"
@@ -161,68 +114,50 @@ backup_restore_firefox() {
             echo "仓库: ${GBACKUP_USER}/${GBACKUP_REPO}"
             echo "分支: main"
 
-            # 清理现有备份目录
-            rm -rf "$BACKUP_DIR"
-            mkdir -p "$BACKUP_DIR"
+            # 创建临时目录用于克隆
+            rm -rf "$temp_dir"
+            mkdir -p "$temp_dir"
+            cd "$temp_dir"
 
-            # 进入备份目录
-            cd "$BACKUP_DIR"
-
-            # 尝试克隆仓库，明确指定main分支
+            # 尝试克隆仓库
             echo "从GitHub main分支下载备份..."
             if git clone -b main --single-branch "$repo_url" . 2>/dev/null; then
                 echo "✅ 成功从main分支克隆仓库"
-            else
-                # 如果克隆失败，尝试其他方法
-                echo "⚠ 从main分支克隆失败，尝试其他方法..."
-                git init
-                git config user.email "firefox-backup@docker.container"
-                git config user.name "Firefox Backup Bot"
-                git remote add origin "$repo_url"
 
-                # 只获取main分支
-                git fetch origin main
+                # 检查是否有备份文件
+                if [ -n "$(ls -A . 2>/dev/null)" ]; then
+                    # 备份现有配置（如果有）
+                    if [ -d "$profile_dir" ]; then
+                        mv "$profile_dir" "${profile_dir}.backup.$(date +%s)"
+                        echo "📋 原有配置已备份到: ${profile_dir}.backup"
+                    fi
 
-                # 检查main分支是否存在
-                if git show-ref --verify --quiet refs/remotes/origin/main; then
-                    git checkout -b main origin/main
-                    echo "✅ 成功切换到main分支"
+                    # 恢复配置到Firefox目录
+                    mkdir -p "$(dirname "$profile_dir")"
+                    rsync -av --exclude='.git' ./ "$profile_dir/"
+
+                    # 设置正确的权限
+                    chown -R vncuser:vncuser "$profile_dir" 2>/dev/null || true
+
+                    echo "✅ Firefox配置已从GitHub main分支恢复"
+                    if [ -f "backup-info.txt" ]; then
+                        echo "📅 备份信息:"
+                        cat "backup-info.txt"
+                    fi
                 else
-                    echo "❌ 从main分支克隆失败，可能的原因："
-                    echo "   - 仓库不存在: ${GBACKUP_USER}/${GBACKUP_REPO}"
-                    echo "   - Token无效或没有权限"
-                    echo "   - main分支不存在"
-                    echo "   - 网络连接问题"
-                    cd - > /dev/null
-                    return 1
-                fi
-            fi
-
-            # 返回原目录
-            cd - > /dev/null
-
-            if [ -d "$BACKUP_DIR/firefox-profile" ]; then
-                # 备份现有配置（如果有）
-                if [ -d "$profile_dir" ]; then
-                    mv "$profile_dir" "${profile_dir}.backup"
-                    echo "📋 原有配置已备份到: ${profile_dir}.backup"
-                fi
-
-                # 恢复配置
-                mkdir -p "$(dirname "$profile_dir")"
-                rsync -av "$BACKUP_DIR/firefox-profile/" "$profile_dir/"
-
-                # 设置正确的权限
-                chown -R vncuser:vncuser "$profile_dir" 2>/dev/null || true
-
-                echo "✅ Firefox配置已从GitHub main分支恢复"
-                if [ -f "$BACKUP_DIR/backup-info.txt" ]; then
-                    echo "📅 备份信息:"
-                    cat "$BACKUP_DIR/backup-info.txt"
+                    echo "⚠ 仓库中没有备份文件，将使用全新配置"
                 fi
             else
-                echo "⚠ 没有找到可恢复的备份文件，将使用全新配置"
+                echo "❌ 从GitHub克隆失败，可能的原因："
+                echo "   - 仓库不存在: ${GBACKUP_USER}/${GBACKUP_REPO}"
+                echo "   - Token无效或没有权限"
+                echo "   - main分支不存在"
+                echo "   - 网络连接问题"
             fi
+
+            # 清理临时目录
+            cd /tmp
+            rm -rf "$temp_dir"
             ;;
         *)
             echo "❌ 未知操作: $action"
@@ -287,9 +222,16 @@ chmod 600 ~/.vnc/passwd
 rm -f /tmp/.X0-lock /tmp/.X11-unix/X0 2>/dev/null || true
 
 # 启动前尝试恢复配置
-if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
-    backup_restore_firefox "restore"
-fi
+case "$AUTO_RESTORE" in
+  "YES" )
+    if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
+      backup_restore_firefox "restore"
+    fi
+    ;;
+  "NO" )
+    echo "⏰ 不执行自动备份... 如需要设置 AUTO_RESTORE="YES""
+    ;;
+esac
 
 # 启动虚拟显示
 echo "启动X虚拟帧缓冲区 ${RESOLUTION}..."
@@ -376,13 +318,20 @@ echo "检查进程状态:"
 ps aux | grep -E '(Xvfb|firefox|x11vnc|websockify)' | grep -v grep
 
 # 设置定时备份（每30分钟备份一次）
-if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
-    while true; do
+case "$AUTO_BACKUP" in
+  "YES" )
+    if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
+      while true; do
         sleep 1800  # 30分钟
         echo "⏰ 执行定时备份..."
         backup_restore_firefox "backup"
-    done &
-fi
+      done &
+    fi
+    ;;
+  "NO" )
+    echo "⏰ 不执行定时备份... 如需要设置 AUTO_BACKUP="YES""
+    ;;
+esac
 
 # 保持容器运行
 echo "容器运行中... 按Ctrl+C停止"
