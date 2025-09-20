@@ -18,6 +18,8 @@ RUN apk update && \
     rm -rf /var/cache/apk/* && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser
+    # 设置 noVNC 默认首页为 vnc.html
+    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 # 复制启动脚本并设置权限
 COPY start.sh /home/vncuser/start.sh

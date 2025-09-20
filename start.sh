@@ -362,7 +362,7 @@ echo "🌐 服务器ip地址: $IP"
 echo "========================================"
 echo "✅ VNC服务已启动！"
 echo "🔑 VNC密码: $VNC_PASSWORD"
-echo "🌐 访问地址: http://${IP}:6080/vnc.html"
+echo "🌐 访问地址: http://${IP}:${PORT}/vnc.html"
 echo "📊 分辨率: $RESOLUTION"
 if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ]; then
     echo "🔧 GitHub备份: ${GBACKUP_USER}/${GBACKUP_REPO}"
