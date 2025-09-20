@@ -3,10 +3,13 @@
 # 配置变量
 VNC_PASSWORD=${VNC_PASSWORD:-"password"}
 RESOLUTION=${RESOLUTION:-"1280x800"}
-GITHUB_USER=${GITHUB_USER:-""}
-GITHUB_REPO=${GITHUB_REPO:-""}
-GITHUB_TOKEN=${GITHUB_TOKEN:-""}
+GBACKUP_USER=${GBACKUP_USER:-""}
+GBACKUP_REPO=${GBACKUP_REPO:-""}
+GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
 BACKUP_DIR="/home/vncuser/firefox-backup"
+
+# 默认端口（Cloud Foundry 提供时使用 $PORT，否则默认 8080）
+PORT=${PORT:-"8080"}
 
 # 解析分辨率
 IFS='x' read -ra RES <<< "$RESOLUTION"
@@ -55,19 +58,19 @@ backup_restore_firefox() {
     local action=$1
 
     # 检查GitHub配置是否完整
-    if [ -z "$GITHUB_USER" ] || [ -z "$GITHUB_REPO" ] || [ -z "$GITHUB_TOKEN" ]; then
+    if [ -z "$GBACKUP_USER" ] || [ -z "$GBACKUP_REPO" ] || [ -z "$GBACKUP_TOKEN" ]; then
         echo "⚠ GitHub配置不完整，跳过备份/还原"
-        echo "  需要设置: GITHUB_USER, GITHUB_REPO, GITHUB_TOKEN"
+        echo "  需要设置: GBACKUP_USER, GBACKUP_REPO, GBACKUP_TOKEN"
         return 0
     fi
 
-    local repo_url="https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git"
+    local repo_url="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
     local profile_dir="$HOME/.mozilla/firefox"
 
     case $action in
         "backup")
             echo "开始备份Firefox配置到GitHub..."
-            echo "仓库: ${GITHUB_USER}/${GITHUB_REPO}"
+            echo "仓库: ${GBACKUP_USER}/${GBACKUP_REPO}"
 
             if [ -d "$profile_dir" ]; then
                 # 创建备份目录
@@ -80,7 +83,7 @@ backup_restore_firefox() {
                 # 添加备份信息文件
                 echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/backup-info.txt"
                 echo "容器ID: $(hostname)" >> "$BACKUP_DIR/backup-info.txt"
-                echo "GitHub仓库: ${GITHUB_USER}/${GITHUB_REPO}" >> "$BACKUP_DIR/backup-info.txt"
+                echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "$BACKUP_DIR/backup-info.txt"
                 echo "分辨率: ${RESOLUTION}" >> "$BACKUP_DIR/backup-info.txt"
 
                 # 进入备份目录操作
@@ -126,7 +129,7 @@ backup_restore_firefox() {
                     # 尝试推送，处理不同的分支名称情况
                     echo "推送更改到远程仓库..."
                     if git push -u origin "$CURRENT_BRANCH"; then
-                        echo "✅ 备份成功推送到 ${GITHUB_USER}/${GITHUB_REPO} (分支: $CURRENT_BRANCH)"
+                        echo "✅ 备份成功推送到 ${GBACKUP_USER}/${GBACKUP_REPO} (分支: $CURRENT_BRANCH)"
                     else
                         echo "⚠ 推送失败，尝试强制推送..."
                         if git push -f origin "$CURRENT_BRANCH"; then
@@ -134,7 +137,7 @@ backup_restore_firefox() {
                         else
                             echo "❌ 强制推送也失败，请检查："
                             echo "   - GitHub Token 权限"
-                            echo "   - 仓库是否存在: ${GITHUB_USER}/${GITHUB_REPO}"
+                            echo "   - 仓库是否存在: ${GBACKUP_USER}/${GBACKUP_REPO}"
                             echo "   - 网络连接"
                             # 显示前几行错误信息
                             git push -f origin "$CURRENT_BRANCH" 2>&1 | head -3
@@ -155,7 +158,7 @@ backup_restore_firefox() {
             ;;
         "restore")
             echo "尝试从GitHub恢复Firefox配置..."
-            echo "仓库: ${GITHUB_USER}/${GITHUB_REPO}"
+            echo "仓库: ${GBACKUP_USER}/${GBACKUP_REPO}"
             echo "分支: main"
 
             # 清理现有备份目录
@@ -186,7 +189,7 @@ backup_restore_firefox() {
                     echo "✅ 成功切换到main分支"
                 else
                     echo "❌ 从main分支克隆失败，可能的原因："
-                    echo "   - 仓库不存在: ${GITHUB_USER}/${GITHUB_REPO}"
+                    echo "   - 仓库不存在: ${GBACKUP_USER}/${GBACKUP_REPO}"
                     echo "   - Token无效或没有权限"
                     echo "   - main分支不存在"
                     echo "   - 网络连接问题"
@@ -249,9 +252,9 @@ case "${1:-}" in
         echo "  help      - 显示帮助信息"
         echo ""
         echo "环境变量:"
-        echo "  GITHUB_USER   - GitHub用户名"
-        echo "  GITHUB_REPO   - GitHub仓库名"
-        echo "  GITHUB_TOKEN  - GitHub访问令牌"
+        echo "  GBACKUP_USER   - GitHub用户名"
+        echo "  GBACKUP_REPO   - GitHub仓库名"
+        echo "  GBACKUP_TOKEN  - GitHub访问令牌"
         echo "  VNC_PASSWORD  - VNC密码 (默认: password)"
         echo "  RESOLUTION    - 分辨率 (默认: 1280x800)"
         echo ""
@@ -265,10 +268,10 @@ echo "🚀 启动Firefox VNC服务..."
 echo "📊 设置分辨率: ${RESOLUTION}"
 
 # 检查GitHub配置
-if [ -n "$GITHUB_USER" ] && [ -n "$GITHUB_REPO" ] && [ -n "$GITHUB_TOKEN" ]; then
-    echo "🔧 GitHub备份已配置: ${GITHUB_USER}/${GITHUB_REPO}"
+if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
+    echo "🔧 GitHub备份已配置: ${GBACKUP_USER}/${GBACKUP_REPO}"
 else
-    echo "⚠ GitHub备份未配置，设置GITHUB_USER, GITHUB_REPO, GITHUB_TOKEN启用备份"
+    echo "⚠ GitHub备份未配置，设置GBACKUP_USER, GBACKUP_REPO, GBACKUP_TOKEN启用备份"
 fi
 
 # 创建必要的目录
@@ -284,7 +287,7 @@ chmod 600 ~/.vnc/passwd
 rm -f /tmp/.X0-lock /tmp/.X11-unix/X0 2>/dev/null || true
 
 # 启动前尝试恢复配置
-if [ -n "$GITHUB_USER" ] && [ -n "$GITHUB_REPO" ] && [ -n "$GITHUB_TOKEN" ]; then
+if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
     backup_restore_firefox "restore"
 fi
 
@@ -355,9 +358,9 @@ x11vnc -display :0 \
 # 启动noVNC
 echo "启动noVNC..."
 if [ -d "/usr/share/novnc" ]; then
-    websockify --web /usr/share/novnc 6080 localhost:5900 > /tmp/novnc.log 2>&1 &
+    websockify --web /usr/share/novnc ${PORT} localhost:5900 > /tmp/novnc.log 2>&1 &
 else
-    websockify 6080 localhost:5900 > /tmp/novnc.log 2>&1 &
+    websockify ${PORT} localhost:5900 > /tmp/novnc.log 2>&1 &
 fi
 
 SERVER_IP=$(curl -s https://speed.cloudflare.com/meta | tr ',' '\n' | grep -E '"clientIp"\s*:\s*"' | sed 's/.*"clientIp"\s*:\s*"\([^"]*\)".*/\1/')
@@ -374,8 +377,8 @@ echo "✅ VNC服务已启动！"
 echo "🔑 VNC密码: $VNC_PASSWORD"
 echo "🌐 访问地址: http://${IP}:6080/vnc.html"
 echo "📊 分辨率: $RESOLUTION"
-if [ -n "$GITHUB_USER" ] && [ -n "$GITHUB_REPO" ]; then
-    echo "🔧 GitHub备份: ${GITHUB_USER}/${GITHUB_REPO}"
+if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ]; then
+    echo "🔧 GitHub备份: ${GBACKUP_USER}/${GBACKUP_REPO}"
 else
     echo "🔧 GitHub备份: 未配置"
 fi
@@ -386,7 +389,7 @@ echo "检查进程状态:"
 ps aux | grep -E '(Xvfb|firefox|x11vnc|websockify)' | grep -v grep
 
 # 设置定时备份（每30分钟备份一次）
-if [ -n "$GITHUB_USER" ] && [ -n "$GITHUB_REPO" ] && [ -n "$GITHUB_TOKEN" ]; then
+if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
     while true; do
         sleep 1800  # 30分钟
         echo "⏰ 执行定时备份..."
@@ -396,7 +399,7 @@ fi
 
 # 保持容器运行
 echo "容器运行中... 按Ctrl+C停止"
-if [ -n "$GITHUB_USER" ] && [ -n "$GITHUB_REPO" ] && [ -n "$GITHUB_TOKEN" ]; then
+if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
     echo "自动备份已启用（每30分钟一次）"
 fi
 echo "手动备份命令: ./start.sh backup"

@@ -25,7 +25,7 @@ RUN chmod +x /home/vncuser/start.sh && \
     chown vncuser:vncuser /home/vncuser/start.sh
 
 # 声明暴露的端口
-EXPOSE 5900 6080
+EXPOSE 8080
 
 # 切换到非 root 用户
 USER vncuser
