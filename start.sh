@@ -51,7 +51,7 @@ backup_restore_firefox() {
 
                 # 复制配置文件到备份目录
                 rsync -av --delete --exclude='Cache' --exclude='cache2' --exclude='thumbnails' \
-                    "$profile_dir/" "$BACKUP_DIR/firefox-profile/"
+                    "$profile_dir/" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
 
                 # 添加备份信息文件
                 echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/README.md"
@@ -65,7 +65,7 @@ backup_restore_firefox() {
                 # 初始化Git仓库（如果不存在）
                 if [ ! -d ".git" ]; then
                     echo "初始化Git仓库..."
-                    git init
+                    git init >/dev/null
                     # 设置Git用户信息
                     git config user.email "firefox-backup@docker.container"
                     git config user.name "Firefox Backup Bot"
@@ -73,7 +73,10 @@ backup_restore_firefox() {
                     git config init.defaultBranch main
 
                     # 创建初始提交
-                    git add .
+                    if ! git add . >/dev/null 2>&1; then
+                        echo "❌ git add 失败"
+                        return 1
+                    fi
                     git commit -m "初始提交: 创建备份仓库 $(date '+%Y-%m-%d %H:%M:%S')"
 
                     # 添加远程仓库
@@ -93,11 +96,19 @@ backup_restore_firefox() {
 
                 # 提交更改
                 echo "提交更改到GitHub..."
-                git add .
+                if ! git add . >/dev/null 2>&1; then
+                    echo "❌ git add 失败"
+                    return 1
+                fi
 
                 # 检查是否有更改需要提交
                 if ! git diff --staged --quiet; then
-                    git commit -m "Firefox备份 $(date '+%Y-%m-%d %H:%M:%S')"
+                    if git commit -m "Firefox备份 $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null 2>&1; then
+                        echo "✅ 提交创建成功"
+                    else
+                        echo "❌ 提交创建失败"
+                        return 1
+                    fi
 
                     # 尝试推送，处理不同的分支名称情况
                     echo "推送更改到远程仓库..."
@@ -149,13 +160,13 @@ backup_restore_firefox() {
             else
                 # 如果克隆失败，尝试其他方法
                 echo "⚠ 从main分支克隆失败，尝试其他方法..."
-                git init
+                git init >/dev/null
                 git config user.email "firefox-backup@docker.container"
                 git config user.name "Firefox Backup Bot"
                 git remote add origin "$repo_url"
 
                 # 只获取main分支
-                git fetch origin main
+                git fetch origin main >/dev/null 2>&1
 
                 # 检查main分支是否存在
                 if git show-ref --verify --quiet refs/remotes/origin/main; then
@@ -180,7 +191,7 @@ backup_restore_firefox() {
 
                 # 恢复配置
                 mkdir -p "$(dirname "$profile_dir")"
-                rsync -av "$BACKUP_DIR/firefox-profile/" "$profile_dir/"
+                rsync -av "$BACKUP_DIR/firefox-profile/" "$profile_dir/" >/dev/null 2>&1
 
                 # 设置正确的权限
                 chown -R vncuser:vncuser "$profile_dir" 2>/dev/null || true
@@ -361,9 +372,6 @@ esac
 
 # 保持容器运行
 echo "容器运行中... 按Ctrl+C停止"
-if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ] && [ -n "$GBACKUP_TOKEN" ]; then
-    echo "自动备份已启用（每30分钟一次）"
-fi
 echo "手动备份命令: ./start.sh backup"
 echo "手动还原命令: ./start.sh restore"
 tail -f /dev/null
