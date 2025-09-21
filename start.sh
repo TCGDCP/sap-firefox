@@ -346,7 +346,7 @@ echo "🔑 VNC密码: $VNC_PASSWORD"
 echo "🌐 访问地址: http://${IP}:${PORT}/vnc.html"
 echo "📊 分辨率: $RESOLUTION"
 if [ -n "$GBACKUP_USER" ] && [ -n "$GBACKUP_REPO" ]; then
-    echo "🔧 GitHub备份: ${GBACKUP_USER}/${GBACKUP_REPO}"
+    echo "🔧 GitHub备份: https://github.com/${GBACKUP_USER}/${GBACKUP_REPO}"
 else
     echo "🔧 GitHub备份: 未配置"
 fi
