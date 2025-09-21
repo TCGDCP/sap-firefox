@@ -1,35 +1,31 @@
 FROM alpine:latest
 
-# 安装所有必要的软件包，并在同一指令中清理缓存
+# 安装最小必要的软件包
 RUN apk update && \
     apk add --no-cache \
         mesa-dri-gallium \
         libpulse \
         curl \
-        xdotool \
         xvfb \
         x11vnc \
         font-dejavu \
         firefox \
         websockify \
         novnc \
-        bash \
-        git \
-        rsync && \
+        bash && \
     # 创建非特权用户
-    adduser -D -s /bin/bash vncuser && \
-    printf '#!/usr/bin/env bash\n\nbash <(curl -sSL https://raw.githubusercontent.com/TCGDCP/sap-firefox/main/start.sh)\n' > /home/vncuser/start.sh && \
-    chmod +x /home/vncuser/start.sh && \
-    chown vncuser:vncuser /home/vncuser/start.sh
-    # 设置 noVNC 默认首页为 vnc.html
-    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+    adduser -D -s /bin/bash vncuser
+
+# 切换到用户目录准备文件
+USER vncuser
+WORKDIR /home/vncuser
+
+# 下载启动脚本（避免在构建层中创建文件）
+RUN curl -sSL https://raw.githubusercontent.com/TCGDCP/sap-firefox/main/start.sh -o start.sh && \
+    chmod +x start.sh
 
 # 声明暴露的端口
 EXPOSE 8080
 
-# 切换到非 root 用户
-USER vncuser
-WORKDIR /home/vncuser
-
 # 设置默认启动命令
-CMD ["/home/vncuser/start.sh"]
+CMD ["./start.sh"]
