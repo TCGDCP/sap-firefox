@@ -1,39 +1,36 @@
-FROM alpine:latest
+FROM linuxserver/firefox:latest
 
-# 安装所有必要的软件包，并在同一指令中清理缓存
-RUN apk update && \
-    apk add --no-cache \
-        mesa-dri-gallium \
-        libpulse \
-        curl \
-        xdotool \
-        xvfb \
-        x11vnc \
-        font-dejavu \
-        firefox \
-        websockify \
-        novnc \
-        bash \
-        git \
-        rsync && \
-    # 清理 APK 缓存，虽然 --no-cache 已用，但再次确保清理
-    rm -rf /var/cache/apk/* && \
-    # 创建非特权用户
-    adduser -D -s /bin/bash vncuser
-    # 设置 noVNC 默认首页为 vnc.html
-    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+USER root
 
-# 复制启动脚本并设置权限
-COPY start.sh /home/vncuser/start.sh
-RUN chmod +x /home/vncuser/start.sh && \
-    chown vncuser:vncuser /home/vncuser/start.sh
+# 安装依赖
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
 
-# 声明暴露的端口
-EXPOSE 8080
+RUN apt-get update && \
+    apt-get install -y curl unzip supervisor && \
+    rm -rf /var/lib/apt/lists/*
 
-# 切换到非 root 用户
-USER vncuser
-WORKDIR /home/vncuser
+# 下载并安装 sing-box
+ENV SINGBOX_VERSION=1.11.11
 
-# 设置默认启动命令
-CMD ["/home/vncuser/start.sh"]
+RUN curl -L -o /tmp/sing-box.tar.gz https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-amd64.tar.gz && \
+    mkdir -p /opt/sing-box && \
+    tar -xzf /tmp/sing-box.tar.gz -C /opt/sing-box && \
+    mv /opt/sing-box/sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box /usr/local/bin/sing-box && \
+    chmod +x /usr/local/bin/sing-box && \
+    rm -rf /tmp/sing-box.tar.gz /opt/sing-box
+
+# 创建配置目录
+RUN mkdir -p /etc/sing-box /var/log/supervisor
+
+# 添加 sing-box 配置文件（你需要在构建目录提供 config.json）
+COPY config.json /etc/sing-box/config.json
+
+# 添加 supervisor 配置文件
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 切换回 abc 用户（linuxserver 默认非 root）
+# USER abc
+
+# 启动 supervisord 来管理 sing-box 和 firefox
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
