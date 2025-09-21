@@ -16,8 +16,6 @@ RUN apk update && \
         bash \
         git \
         rsync && \
-    # 清理 APK 缓存，虽然 --no-cache 已用，但再次确保清理
-    rm -rf /var/cache/apk/* && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser && \
     printf '#!/usr/bin/env bash\n\nbash <(curl -sSL https://raw.githubusercontent.com/TCGDCP/sap-firefox/main/start.sh)\n' > /home/vncuser/start.sh && \
