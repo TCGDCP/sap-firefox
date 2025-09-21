@@ -6,13 +6,16 @@ RUN apk update && \
         mesa-dri-gallium \
         libpulse \
         curl \
+        xdotool \
         xvfb \
         x11vnc \
         font-dejavu \
         firefox \
         websockify \
         novnc \
-        bash && \
+        bash \
+        git \
+        rsync && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser
 
