@@ -112,11 +112,11 @@ backup_restore_firefox() {
 
                     # 尝试推送，处理不同的分支名称情况
                     echo "推送更改到远程仓库..."
-                    if git push -u origin "$CURRENT_BRANCH"; then
+                    if git push -u origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
                         echo "✅ 备份成功推送到 ${GBACKUP_USER}/${GBACKUP_REPO} (分支: $CURRENT_BRANCH)"
                     else
                         echo "⚠ 推送失败，尝试强制推送..."
-                        if git push -f origin "$CURRENT_BRANCH"; then
+                        if git push -f origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
                             echo "✅ 强制推送完成"
                         else
                             echo "❌ 强制推送也失败，请检查："
