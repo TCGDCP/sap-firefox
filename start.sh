@@ -67,20 +67,20 @@ backup_restore_firefox() {
                     echo "初始化Git仓库..."
                     git init >/dev/null
                     # 设置Git用户信息
-                    git config user.email "firefox-backup@docker.container"
-                    git config user.name "Firefox Backup Bot"
+                    git config user.email "firefox-backup@docker.container" >/dev/null 2>&1
+                    git config user.name "Firefox Backup Bot" >/dev/null 2>&1
                     # 设置默认分支为main
-                    git config init.defaultBranch main
+                    git config init.defaultBranch main >/dev/null 2>&1
 
                     # 创建初始提交
                     if ! git add . >/dev/null 2>&1; then
                         echo "❌ git add 失败"
                         return 1
                     fi
-                    git commit -m "初始提交: 创建备份仓库 $(date '+%Y-%m-%d %H:%M:%S')"
+                    git commit -m "初始提交: 创建备份仓库 $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null 2>&1
 
                     # 添加远程仓库
-                    git remote add origin "$repo_url"
+                    git remote add origin "$repo_url" >/dev/null 2>&1
                     echo "✅ 本地Git仓库初始化完成"
                 else
                     # 确保用户信息正确设置
