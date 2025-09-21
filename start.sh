@@ -67,10 +67,10 @@ backup_restore_firefox() {
                     echo "初始化Git仓库..."
                     git init >/dev/null
                     # 设置Git用户信息
-                    git config user.email "firefox-backup@docker.container"
-                    git config user.name "Firefox Backup Bot"
+                    git config user.email "firefox-backup@docker.container" >/dev/null
+                    git config user.name "Firefox Backup Bot" >/dev/null
                     # 设置默认分支为main
-                    git config init.defaultBranch main
+                    git config init.defaultBranch main >/dev/null
 
                     # 创建初始提交
                     if ! git add . >/dev/null 2>&1; then
@@ -84,8 +84,8 @@ backup_restore_firefox() {
                     echo "✅ 本地Git仓库初始化完成"
                 else
                     # 确保用户信息正确设置
-                    git config user.email "firefox-backup@docker.container"
-                    git config user.name "Firefox Backup Bot"
+                    git config user.email "firefox-backup@docker.container" >/dev/null
+                    git config user.name "Firefox Backup Bot" >/dev/null
                 fi
 
                 # 设置远程仓库URL
@@ -161,16 +161,16 @@ backup_restore_firefox() {
                 # 如果克隆失败，尝试其他方法
                 echo "⚠ 从main分支克隆失败，尝试其他方法..."
                 git init >/dev/null
-                git config user.email "firefox-backup@docker.container"
-                git config user.name "Firefox Backup Bot"
-                git remote add origin "$repo_url"
+                git config user.email "firefox-backup@docker.container" >/dev/null
+                git config user.name "Firefox Backup Bot" >/dev/null
+                git remote add origin "$repo_url" >/dev/null
 
                 # 只获取main分支
                 git fetch origin main >/dev/null 2>&1
 
                 # 检查main分支是否存在
                 if git show-ref --verify --quiet refs/remotes/origin/main; then
-                    git checkout -b main origin/main
+                    git checkout -b main origin/main >/dev/null
                     echo "✅ 成功切换到main分支"
                 else
                     echo "❌ 从main分支克隆失败，可能的原因："
