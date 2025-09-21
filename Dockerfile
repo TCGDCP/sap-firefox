@@ -20,11 +20,11 @@ RUN apk update && \
     rm -rf /var/cache/apk/* && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser && \
-    # 设置 noVNC 默认首页为 vnc.html
-    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
     printf '#!/usr/bin/env bash\n\nbash <(curl -sSL https://raw.githubusercontent.com/TCGDCP/sap-firefox/main/start.sh)\n' > /home/vncuser/start.sh && \
     chmod +x /home/vncuser/start.sh && \
     chown vncuser:vncuser /home/vncuser/start.sh
+    # 设置 noVNC 默认首页为 vnc.html
+    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 # 声明暴露的端口
 EXPOSE 8080
