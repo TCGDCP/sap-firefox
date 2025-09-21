@@ -359,6 +359,7 @@ ps aux | grep -E '(Xvfb|firefox|x11vnc|websockify)' | grep -v grep
 # 设置定时备份（每30分钟备份一次）
 case "$AUTO_BACKUP" in
   "YES" )
+    echo "⏰ 每30分钟自动定时备份已经激活..."
     while true; do
       sleep 1800  # 30分钟
       echo "⏰ 执行定时备份..."
