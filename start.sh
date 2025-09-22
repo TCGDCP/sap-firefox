@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # 配置变量
-VNC_PASSWORD=${VNC_PASSWORD:-"password"}
-RESOLUTION=${RESOLUTION:-"720x1280"}
-GBACKUP_USER=${GBACKUP_USER:-""}
-GBACKUP_REPO=${GBACKUP_REPO:-""}
-GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-BACKUP_DIR="./firefox-backup"
-AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
-AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
+export VNC_PASSWORD=${VNC_PASSWORD:-"password"}
+export RESOLUTION=${RESOLUTION:-"720x1280"}
+export GBACKUP_USER=${GBACKUP_USER:-""}
+export GBACKUP_REPO=${GBACKUP_REPO:-""}
+export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
+export BACKUP_DIR="./firefox-backup"
+export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
+export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
 
 export UUID=${UUID:-''} # V1需要
-export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1 默认V1
-export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用nezha
-export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用nezha
+export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
+export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用哪吒
+export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用哪吒
 export NEZHA_PORT=${NEZHA_PORT:-'443'}
 
 # 默认端口（Cloud Foundry 提供时使用 $PORT，否则默认 8080）
