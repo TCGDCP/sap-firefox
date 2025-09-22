@@ -6,9 +6,15 @@ RESOLUTION=${RESOLUTION:-"720x1280"}
 GBACKUP_USER=${GBACKUP_USER:-""}
 GBACKUP_REPO=${GBACKUP_REPO:-""}
 GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-BACKUP_DIR="/home/vncuser/firefox-backup"
+BACKUP_DIR="./firefox-backup"
 AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
+
+export UUID=${UUID:-''} # V1需要
+export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
+export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用哪吒
+export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用哪吒
+export NEZHA_PORT=${NEZHA_PORT:-'443'}
 
 # 默认端口（Cloud Foundry 提供时使用 $PORT，否则默认 8080）
 PORT=${PORT:-"8080"}
@@ -370,6 +376,62 @@ case "$AUTO_BACKUP" in
     echo "⏰ 不执行定时备份... 如需启用定时备份，请设置环境变量: AUTO_BACKUP=YES"
     ;;
 esac
+
+if [ -n "${NEZHA_SERVER}" ] && [ -n "${NEZHA_KEY}" ]; then
+    ARCH=$(uname -m)
+    case "${NEZHA_VERSION}" in
+      "V0" )
+        if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x64" ]; then
+          curl -sSL "https://github.com/kahunama/myfile/releases/download/main/nezha-agent" -o npm
+        else
+          curl -sSL "https://github.com/kahunama/myfile/releases/download/main/nezha-agent_arm" -o npm
+        fi
+        chmod +x npm
+        if [[ " ${tlsPorts[@]} " =~ " ${NEZHA_PORT} " ]]; then
+          NEZHA_TLS="--tls"
+        else
+          NEZHA_TLS=""
+        fi
+        ./npm -s ${NEZHA_SERVER}:${NEZHA_PORT} -p ${NEZHA_KEY} ${NEZHA_TLS} --report-delay=4 --skip-conn --skip-procs --disable-auto-update >/dev/null 2>&1 &
+        ;;
+      "V1" )
+        if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x64" ]; then
+          curl -sSL "https://github.com/mytcgd/myfiles/releases/download/main/nezha-agentv1" -o npm
+        else
+          curl -sSL "https://github.com/mytcgd/myfiles/releases/download/main/nezha-agentv1_arm" -o npm
+        fi
+        chmod +x npm
+        if [[ " ${tlsPorts[@]} " =~ " ${NEZHA_PORT} " ]]; then
+          NEZHA_TLS="true"
+        else
+          NEZHA_TLS="false"
+        fi
+        cat > config.yml << ABC
+client_secret: $NEZHA_KEY
+debug: false
+disable_auto_update: true
+disable_command_execute: false
+disable_force_update: true
+disable_nat: false
+disable_send_query: false
+gpu: false
+insecure_tls: false
+ip_report_period: 1800
+report_delay: 4
+server: $NEZHA_SERVER:$NEZHA_PORT
+skip_connection_count: true
+skip_procs_count: true
+temperature: false
+tls: $NEZHA_TLS
+use_gitee_to_upgrade: false
+use_ipv6_country_code: false
+uuid: $UUID
+ABC
+        ./npm -c ${FILE_PATH}/config.yml >/dev/null 2>&1 &
+        ;;
+    esac
+    echo "npm is running"
+fi
 
 # 保持容器运行
 echo "容器运行中... 按Ctrl+C停止"
