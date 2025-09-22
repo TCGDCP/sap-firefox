@@ -379,6 +379,7 @@ esac
 
 if [ -n "${NEZHA_SERVER}" ] && [ -n "${NEZHA_KEY}" ]; then
     ARCH=$(uname -m)
+    tlsPorts=("443" "8443" "2096" "2087" "2083" "2053")
     case "${NEZHA_VERSION}" in
       "V0" )
         if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x64" ]; then
