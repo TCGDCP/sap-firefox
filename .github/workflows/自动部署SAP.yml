@@ -89,6 +89,11 @@ jobs:
         cf set-env ${{ env.APP_NAME }} GBACKUP_USER "${{ secrets.GBACKUP_USER }}"
         cf set-env ${{ env.APP_NAME }} GBACKUP_REPO "${{ secrets.GBACKUP_REPO }}"
         cf set-env ${{ env.APP_NAME }} GBACKUP_TOKEN "${{ secrets.GBACKUP_TOKEN }}"
+        cf set-env ${{ env.APP_NAME }} UUID "${{ secrets.UUID }}"
+        cf set-env ${{ env.APP_NAME }} NEZHA_VERSION "${{ secrets.NEZHA_VERSION }}"
+        cf set-env ${{ env.APP_NAME }} NEZHA_SERVER "${{ secrets.NEZHA_SERVER }}"
+        cf set-env ${{ env.APP_NAME }} NEZHA_KEY "${{ secrets.NEZHA_KEY }}"
+        cf set-env ${{ env.APP_NAME }} NEZHA_PORT "${{ secrets.NEZHA_PORT }}"
         
         # 可选：从文件读取环境变量(如果存在)
         if [ -f .env ]; then
