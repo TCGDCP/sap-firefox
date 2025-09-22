@@ -81,7 +81,7 @@ jobs:
 
     - name: Set environment variables
       run: |
-        # VNC密码、分辨率及github备份相关
+        # VNC密码、分辨率及github备份、nezha相关
         cf set-env ${{ env.APP_NAME }} AUTO_BACKUP "${{ secrets.AUTO_BACKUP }}"
         cf set-env ${{ env.APP_NAME }} AUTO_RESTORE "${{ secrets.AUTO_RESTORE }}"
         cf set-env ${{ env.APP_NAME }} VNC_PASSWORD "${{ secrets.VNC_PASSWORD }}"
