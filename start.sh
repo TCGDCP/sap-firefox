@@ -11,7 +11,7 @@ AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
 
 export UUID=${UUID:-''} # V1需要
-export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
+export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1 默认V1
 export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用nezha
 export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用nezha
 export NEZHA_PORT=${NEZHA_PORT:-'443'}
