@@ -70,7 +70,7 @@ backup_restore_firefox() {
                     git config user.email "firefox-backup@docker.container" >/dev/null
                     git config user.name "Firefox Backup Bot" >/dev/null
                     # 设置默认分支为main
-                    git config init.defaultBranch main >/dev/null
+                    git config init.defaultBranch main >/dev/null 2>&1
 
                     # 创建初始提交
                     if ! git add . >/dev/null 2>&1; then
