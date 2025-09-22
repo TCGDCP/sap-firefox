@@ -27,6 +27,7 @@ on:
 env:
   DOCKER_IMAGE: ghcr.io/mytcgd/firefoxvnc:latest
   MEMORY: 2048M
+  DISK: 2048M
 
 jobs:
   deploy:
@@ -77,7 +78,7 @@ jobs:
 
     - name: Deploy application
       run: |
-        cf push ${{ env.APP_NAME }} --docker-image ${{ env.DOCKER_IMAGE }} -m ${{ env.MEMORY }} --health-check-type port
+        cf push ${{ env.APP_NAME }} --docker-image ${{ env.DOCKER_IMAGE }} -m ${{ env.MEMORY }} -k ${{ env.DISK }} --health-check-type port
 
     - name: Set environment variables
       run: |
