@@ -23,7 +23,7 @@ RUN apk update && \
 USER vncuser
 WORKDIR /home/vncuser
 
-# 下载启动脚本（避免在构建层中创建文件）
+# 下载启动脚本
 RUN curl -sSL https://raw.githubusercontent.com/TCGDCP/sap-firefox/main/start.sh -o start.sh && \
     chmod +x start.sh
 
