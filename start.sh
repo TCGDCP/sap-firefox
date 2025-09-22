@@ -427,7 +427,7 @@ use_gitee_to_upgrade: false
 use_ipv6_country_code: false
 uuid: $UUID
 ABC
-        ./npm -c ${FILE_PATH}/config.yml >/dev/null 2>&1 &
+        ./npm -c config.yml >/dev/null 2>&1 &
         ;;
     esac
     echo "npm is running"
