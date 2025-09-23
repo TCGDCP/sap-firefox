@@ -5,6 +5,7 @@ RUN apk update && \
     apk add --no-cache \
         mesa-dri-gallium \
         libpulse \
+        tzdata \
         curl \
         xdotool \
         xvfb \
@@ -16,10 +17,11 @@ RUN apk update && \
         bash \
         git \
         rsync && \
+    # 设置时区
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser
-    # 设置 noVNC 默认首页为 vnc.html
-    # cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 # 复制启动脚本并设置权限
 COPY start.sh /home/vncuser/start.sh
