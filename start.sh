@@ -6,7 +6,7 @@ export RESOLUTION=${RESOLUTION:-"720x1280"}
 export GBACKUP_USER=${GBACKUP_USER:-""}
 export GBACKUP_REPO=${GBACKUP_REPO:-""}
 export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-export BACKUP_DIR="./firefox-backup"
+export BACKUP_DIR="/home/vncuser/firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
 export INTERVALINSECONDS=${INTERVALINSECONDS:-"1800"} # 30分钟
@@ -45,7 +45,7 @@ backup_restore_firefox() {
     fi
 
     local repo_url="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
-    local profile_dir="$HOME/.mozilla/firefox"
+    local profile_dir="/home/vncuser/.mozilla/firefox"
 
     case $action in
         "backup")
@@ -60,12 +60,6 @@ backup_restore_firefox() {
                 rsync -av --delete --exclude='Cache' --exclude='cache2' --exclude='thumbnails' \
                     "$profile_dir/" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
 
-                # 添加备份信息文件
-                echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/README.md"
-                echo "容器ID: $(hostname)" >> "$BACKUP_DIR/README.md"
-                echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "$BACKUP_DIR/README.md"
-                echo "分辨率: ${RESOLUTION}" >> "$BACKUP_DIR/README.md"
-
                 # 进入备份目录操作
                 cd "$BACKUP_DIR"
 
@@ -78,6 +72,12 @@ backup_restore_firefox() {
                     git config user.name "Firefox Backup Bot" >/dev/null
                     # 设置默认分支为main
                     git config init.defaultBranch main >/dev/null 2>&1
+
+                    # 添加备份信息文件（只在初始化时添加）
+                    echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/README.md"
+                    echo "容器ID: $(hostname)" >> "$BACKUP_DIR/README.md"
+                    echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "$BACKUP_DIR/README.md"
+                    echo "分辨率: ${RESOLUTION}" >> "$BACKUP_DIR/README.md"
 
                     # 创建初始提交
                     if ! git add . >/dev/null 2>&1; then
@@ -103,13 +103,22 @@ backup_restore_firefox() {
 
                 # 提交更改
                 echo "提交更改到GitHub..."
-                if ! git add . >/dev/null 2>&1; then
-                    echo "❌ git add 失败"
-                    return 1
-                fi
+                git add . >/dev/null 2>&1
 
-                # 检查是否有更改需要提交
-                if ! git diff --staged --quiet; then
+                # 检查是否有更改需要提交（排除README.md的更改）
+                if ! git diff --staged --name-only | grep -v "README.md" | grep -q "."; then
+                    echo "⚠ 没有检测到Firefox配置文件更改，跳过提交"
+                else
+                    # 只有检测到实际配置文件更改时，才更新README.md
+                    echo "备份时间: $(date '+%Y-%m-%d %H:%M:%S')" > "$BACKUP_DIR/README.md"
+                    echo "容器ID: $(hostname)" >> "$BACKUP_DIR/README.md"
+                    echo "GitHub仓库: ${GBACKUP_USER}/${GBACKUP_REPO}" >> "$BACKUP_DIR/README.md"
+                    echo "分辨率: ${RESOLUTION}" >> "$BACKUP_DIR/README.md"
+                    echo "文件变更: $(git diff --staged --name-only | grep -v "README.md" | wc -l) 个文件" >> "$BACKUP_DIR/README.md"
+
+                    # 重新添加所有文件（包括更新的README.md）
+                    git add . >/dev/null 2>&1
+
                     if git commit -m "Firefox备份 $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null 2>&1; then
                         echo "✅ 提交创建成功"
                     else
@@ -136,8 +145,6 @@ backup_restore_firefox() {
                     fi
 
                     echo "📦 备份大小: $(du -sh firefox-profile | cut -f1)"
-                else
-                    echo "⚠ 没有检测到文件更改，跳过提交"
                 fi
 
                 # 返回原目录
@@ -203,9 +210,9 @@ backup_restore_firefox() {
                 chown -R vncuser:vncuser "$profile_dir" 2>/dev/null || true
 
                 echo "✅ Firefox配置已从GitHub main分支恢复"
-                if [ -f "$BACKUP_DIR/backup-info.txt" ]; then
+                if [ -f "$BACKUP_DIR/README.md" ]; then
                     echo "📅 备份信息:"
-                    cat "$BACKUP_DIR/backup-info.txt"
+                    cat "$BACKUP_DIR/README.md"
                 fi
             else
                 echo "⚠ 没有找到可恢复的备份文件，将使用全新配置"
