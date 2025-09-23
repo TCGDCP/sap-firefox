@@ -141,7 +141,6 @@ backup_restore_firefox() {
                 fi
 
                 # 返回原目录
-                rm -rf "$BACKUP_DIR"
                 cd - > /dev/null
 
             else
@@ -369,7 +368,7 @@ case "$AUTO_BACKUP" in
     INTERVALINMINUTES=$((INTERVALINSECONDS / 60))
     echo "⏰ 每 $INTERVALINMINUTES 分钟自动定时备份已经激活..."
     while true; do
-      sleep 1800  # 30分钟
+      sleep ${INTERVALINSECONDS}
       echo "⏰ 执行定时备份..."
       backup_restore_firefox "backup"
     done &
