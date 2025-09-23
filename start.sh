@@ -9,6 +9,7 @@ export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
 export BACKUP_DIR="./firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
+export INTERVALINSECONDS=${INTERVALINSECONDS:-"1800"} # 30分钟
 
 export UUID=${UUID:-''} # V1需要
 export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
@@ -365,7 +366,8 @@ ps aux | grep -E '(Xvfb|firefox|x11vnc|websockify)' | grep -v grep
 # 设置定时备份（每30分钟备份一次）
 case "$AUTO_BACKUP" in
   "YES" )
-    echo "⏰ 每30分钟自动定时备份已经激活..."
+    INTERVALINMINUTES=$((INTERVALINSECONDS / 60))
+    echo "⏰ 每 $INTERVALINMINUTES 分钟自动定时备份已经激活..."
     while true; do
       sleep 1800  # 30分钟
       echo "⏰ 执行定时备份..."
