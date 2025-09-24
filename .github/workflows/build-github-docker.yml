@@ -13,15 +13,15 @@ jobs:
       MYGITHUB_REPOSITORY: ghcr.io/${{ secrets.MYGITHUB_USER }}/firefoxvnc:latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ secrets.MYGITHUB_USER }}
           password: ${{ secrets.MYGITHUB_TOKEN }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.0.0
