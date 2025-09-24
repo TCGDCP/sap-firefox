@@ -21,7 +21,9 @@ RUN apk update && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     # 创建非特权用户
-    adduser -D -s /bin/bash vncuser
+    adduser -D -s /bin/bash vncuser && \
+    # 设置VNC主页
+    cp /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 # 复制启动脚本并设置权限
 COPY start.sh /home/vncuser/start.sh
