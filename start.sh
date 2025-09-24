@@ -9,7 +9,7 @@ export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
 export BACKUP_DIR="/home/vncuser/firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
-export INTERVALINSECONDS=${INTERVALINSECONDS:-"1800"} # 30分钟
+export INTERVALINSECONDS=${INTERVALINSECONDS:-"1800"} # 单位为秒,默认30分钟
 
 export UUID=${UUID:-''} # V1需要
 export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
@@ -105,8 +105,8 @@ backup_restore_firefox() {
                 echo "提交更改到GitHub..."
                 git add . >/dev/null 2>&1
 
-                # 检查是否有更改需要提交（排除README.md的更改）
-                if ! git diff --staged --name-only | grep -v "README.md" | grep -q "."; then
+                # 检查是否有更改需要提交（排除README.md和常见临时/无关文件的更改）
+                if ! git diff --staged --name-only | grep -Ev "(^README\.md$|^\.gitignore$|^\.git/)" | grep -q .; then
                     echo "⚠ 没有检测到Firefox配置文件更改，跳过提交"
                 else
                     # 只有检测到实际配置文件更改时，才更新README.md
