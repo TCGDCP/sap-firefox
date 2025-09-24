@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # 配置变量
+export PORT=${PORT:-"8080"}
 export VNC_PASSWORD=${VNC_PASSWORD:-"password"}
 export RESOLUTION=${RESOLUTION:-"720x1280"}
 export GBACKUP_USER=${GBACKUP_USER:-""}
@@ -16,9 +17,6 @@ export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
 export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用哪吒
 export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用哪吒
 export NEZHA_PORT=${NEZHA_PORT:-'443'}
-
-# 默认端口（Cloud Foundry 提供时使用 $PORT，否则默认 8080）
-PORT=${PORT:-"8080"}
 
 # 解析分辨率
 IFS='x' read -ra RES <<< "$RESOLUTION"
@@ -375,7 +373,7 @@ case "$AUTO_BACKUP" in
     INTERVALINMINUTES=$((INTERVALINSECONDS / 60))
     echo "⏰ 每 $INTERVALINMINUTES 分钟自动定时备份已经激活..."
     while true; do
-      sleep ${INTERVALINSECONDS}
+      sleep "${INTERVALINSECONDS}"
       echo "⏰ 执行定时备份..."
       backup_restore_firefox "backup"
     done &
