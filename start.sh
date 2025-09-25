@@ -10,7 +10,7 @@ export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
 export BACKUP_DIR="/home/vncuser/firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
-export INTERVALINSECONDS=${INTERVALINSECONDS:-"1800"} # 单位为秒,默认30分钟
+export INTERVAL_IN_SECONDS=${INTERVAL_IN_SECONDS:-"1800"} # 单位为秒,默认30分钟
 
 export UUID=${UUID:-''} # V1需要
 export NEZHA_VERSION=${NEZHA_VERSION:-'V1'} # V0 OR V1
@@ -260,10 +260,10 @@ fi
 
 # 设置定时备份（每30分钟备份一次）
 if [[ "$AUTO_BACKUP" == "YES" ]]; then
-    INTERVALINMINUTES=$((INTERVALINSECONDS / 60))
-    echo "⏰ 每 $INTERVALINMINUTES 分钟自动定时备份已经激活..."
+    INTERVAL_IN_MINUTES=$((INTERVAL_IN_SECONDS / 60))
+    echo "⏰ 每 $INTERVAL_IN_MINUTES 分钟自动定时备份已经激活..."
     while true; do
-        sleep "$INTERVALINSECONDS"
+        sleep "$INTERVAL_IN_SECONDS"
         backup_firefox
     done &
 else
