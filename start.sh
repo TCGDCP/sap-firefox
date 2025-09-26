@@ -7,7 +7,6 @@ export RESOLUTION=${RESOLUTION:-"720x1280"}
 export GBACKUP_USER=${GBACKUP_USER:-""}
 export GBACKUP_REPO=${GBACKUP_REPO:-""}
 export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-export FIREFOX_DIR="/home/vncuser/.mozilla/firefox"
 export BACKUP_DIR="/home/vncuser/firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
@@ -19,13 +18,6 @@ export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用哪吒
 export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用哪吒
 export NEZHA_PORT=${NEZHA_PORT:-'443'}
 
-mkdir -p "$FIREFOX_DIR"
-if [[ -n "$GBACKUP_USER" ]] && [[ -n "$GBACKUP_REPO" ]] && [[ -n "$GBACKUP_TOKEN" ]]; then
-   export REPO_URL="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
-else
-   export REPO_URL=""
-fi
-
 # 解析分辨率
 IFS='x' read -ra RES <<< "$RESOLUTION"
 VNC_WIDTH="${RES[0]}"
@@ -36,14 +28,23 @@ VNC_DEPTH="24"
 FIREFOX_WIDTH=$VNC_WIDTH
 FIREFOX_HEIGHT=$VNC_HEIGHT
 
+# Firefox备份还原设置
+export profile_dir="/home/vncuser/.mozilla/firefox"
+mkdir -p "$profile_dir"
+if [[ -n "$GBACKUP_USER" ]] && [[ -n "$GBACKUP_REPO" ]] && [[ -n "$GBACKUP_TOKEN" ]]; then
+   export repo_url="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
+else
+   export repo_url=""
+fi
+
 # Firefox 备份
 backup_firefox() {
-    [[ -z "$REPO_URL" ]] && { echo "❌ 未配置GitHub仓库"; return 0; }
+    [[ -z "$repo_url" ]] && { echo "❌ 未配置GitHub仓库"; return 0; }
 
     echo "开始备份Firefox配置到GitHub..."
     echo "仓库: ${GBACKUP_USER}/${GBACKUP_REPO}"
 
-    if [ ! -d "$FIREFOX_DIR" ]; then
+    if [ ! -d "$profile_dir" ]; then
         echo "⚠ Firefox配置文件目录不存在，跳过备份"
         return 0
     fi
@@ -54,7 +55,7 @@ backup_firefox() {
 
     # 复制配置文件到备份目录
     rsync -av --no-t --delete --exclude='Cache' --exclude='cache2' --exclude='thumbnails' \
-        "$FIREFOX_DIR/" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
+        "$profile_dir/" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
 
     # 进入备份目录操作
     cd "$BACKUP_DIR" || { echo "❌ 进入备份目录失败"; return 1; }
@@ -70,7 +71,7 @@ backup_firefox() {
     git config user.email "firefox-backup@docker.container"
     git config user.name "Firefox Backup Bot"
     git remote remove origin 2>/dev/null || true
-    git remote add origin "$REPO_URL"
+    git remote add origin "$repo_url"
 
     # 提交更改
     echo "检查更改..."
@@ -115,7 +116,7 @@ backup_firefox() {
 
 # Firefox 还原
 restore_firefox() {
-    [[ -z "$REPO_URL" ]] && { echo "❌ 未配置GitHub仓库"; return 0; }
+    [[ -z "$repo_url" ]] && { echo "❌ 未配置GitHub仓库"; return 0; }
     echo "尝试从GitHub恢复Firefox配置..."
 
     # 清理现有备份目录
@@ -127,18 +128,19 @@ restore_firefox() {
 
     # 尝试克隆仓库，明确指定main分支
     echo "从GitHub main分支下载备份..."
-    if git clone -b main --single-branch "$REPO_URL" . 2>/dev/null; then
+    if git clone -b main --single-branch "$repo_url" . 2>/dev/null; then
         echo "✅ 成功从main分支克隆仓库"
     fi
 
     if [ -d "$BACKUP_DIR/firefox-profile" ]; then
-        rm -rf "$FIREFOX_DIR"
+        rm -rf "$profile_dir"
 
         # 恢复配置
-        rsync -av "$BACKUP_DIR/firefox-profile/" "$FIREFOX_DIR/" >/dev/null 2>&1
+        mkdir -p "$profile_dir"
+        rsync -av "$BACKUP_DIR/firefox-profile/" "$profile_dir/" >/dev/null 2>&1
 
         # 设置正确的权限
-        chown -R vncuser:vncuser "$FIREFOX_DIR" 2>/dev/null || true
+        chown -R vncuser:vncuser "$profile_dir" 2>/dev/null || true
 
         echo "✅ Firefox配置已从GitHub main分支恢复"
         if [ -f "$BACKUP_DIR/README.md" ]; then
@@ -184,135 +186,90 @@ case "${1:-}" in
         ;;
 esac
 
-# 启动前尝试恢复配置
-if [[ "$AUTO_RESTORE" == "YES" ]]; then
-    restore_firefox
-    sleep 10
-else
-   ⏰ 不执行自动恢复... 如需启用恢复，请设置环境变量: AUTO_RESTORE=YES
-fi
-
+# 以下是正常的VNC启动流程
 echo "🚀 启动Firefox VNC服务..."
 
 # 创建必要的目录
-mkdir -p /home/vncuser/.vnc
+mkdir -p ~/.vnc
 mkdir -p "$BACKUP_DIR"
-chmod 700 /home/vncuser/.vnc
+chmod 700 ~/.vnc
 
 # 设置VNC密码
-echo "$VNC_PASSWORD" | x11vnc -storepasswd - > /home/vncuser/.vnc/passwd
-chmod 600 /home/vncuser/.vnc/passwd
+echo "$VNC_PASSWORD" | x11vnc -storepasswd - > ~/.vnc/passwd
+chmod 600 ~/.vnc/passwd
 
 # 清理旧的锁文件
 rm -f /tmp/.X0-lock /tmp/.X11-unix/X0 2>/dev/null || true
 
-# 创建X11相关目录并设置权限
-mkdir -p /tmp/.X11-unix
-chmod 1777 /tmp/.X11-unix
-chown vncuser:vncuser /tmp/.X11-unix
+# 启动前尝试恢复配置
+[[ "$AUTO_RESTORE" == "YES" ]] && restore_firefox
 
-# 设置临时目录权限
-mkdir -p /home/vncuser/tmp
-chmod 700 /home/vncuser/tmp
+# 启动虚拟显示
+echo "启动X虚拟帧缓冲区 ${RESOLUTION}..."
+Xvfb :0 -screen 0 ${VNC_WIDTH}x${VNC_HEIGHT}x${VNC_DEPTH} \
+    +extension RANDR \
+    +extension GLX \
+    +extension RENDER \
+    -nolisten tcp \
+    -noreset \
+    -ac \
+    > /tmp/xvfb.log 2>&1 &
 
-# 设置TMPDIR环境变量
-export TMPDIR=/home/vncuser/tmp
+# 等待Xvfb启动
+sleep 3
 
-# 在用户目录创建最小化Fluxbox配置
-mkdir -p /home/vncuser/.fluxbox
-cat > /home/vncuser/.fluxbox/init << EOF
-session.screen0.workspaces: 1
-session.screen0.workspacewarping: false
-session.screen0.toolbar.visible: false
-session.screen0.fullMaximization: true
-session.screen0.maxDisableMove: false
-session.screen0.maxDisableResize: false
-session.screen0.defaultDeco: NONE
-EOF
-chown -R vncuser:vncuser /home/vncuser/.fluxbox
+# 设置显示环境变量
+export DISPLAY=:0
 
-# 在用户目录创建supervisor配置
-SUPERVISOR_CONFIG_DIR="/home/vncuser/.supervisor"
-mkdir -p "$SUPERVISOR_CONFIG_DIR"
+# 等待X服务器完全启动
+sleep 2
 
-# 创建主supervisor配置文件
-cat > "$SUPERVISOR_CONFIG_DIR/supervisord.conf" << EOF
-[unix_http_server]
-file=$SUPERVISOR_CONFIG_DIR/supervisor.sock
+# 启动Firefox
+firefox --no-remote --width=$FIREFOX_WIDTH --height=$FIREFOX_HEIGHT > /tmp/firefox.log 2>&1 &
+sleep 8
 
-[supervisord]
-logfile=$SUPERVISOR_CONFIG_DIR/supervisord.log
-pidfile=$SUPERVISOR_CONFIG_DIR/supervisord.pid
-nodaemon=true
-user=vncuser
+# 检查Firefox是否正常运行
+if ! ps aux | grep firefox | grep -v grep > /dev/null; then
+    echo "⚠ Firefox启动失败，尝试重新启动..."
+    firefox --no-remote --width=$FIREFOX_WIDTH --height=$FIREFOX_HEIGHT > /tmp/firefox.log 2>&1 &
+    sleep 5
+else
+    echo "启动Firefox (${FIREFOX_WIDTH}x${FIREFOX_HEIGHT})..."
+fi
 
-[rpcinterface:supervisor]
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+# 启动VNC服务器
+echo "启动VNC服务器..."
+x11vnc -display :0 \
+    -forever \
+    -shared \
+    -passwd "$VNC_PASSWORD" \
+    -rfbport 5900 \
+    -noxdamage \
+    -geometry ${RESOLUTION} \
+    -wait 5 \
+    -defer 5 \
+    > /tmp/x11vnc.log 2>&1 &
 
-[supervisorctl]
-serverurl=unix://$SUPERVISOR_CONFIG_DIR/supervisor.sock
+# 启动noVNC
+echo "启动noVNC..."
+if [ -d "/usr/share/novnc" ]; then
+    websockify --web /usr/share/novnc ${PORT} localhost:5900 > /tmp/novnc.log 2>&1 &
+else
+    websockify ${PORT} localhost:5900 > /tmp/novnc.log 2>&1 &
+fi
 
-[include]
-files = $SUPERVISOR_CONFIG_DIR/conf.d/*.ini
-EOF
+# 设置定时备份（每30分钟备份一次）
+if [[ "$AUTO_BACKUP" == "YES" ]]; then
+    INTERVAL_IN_MINUTES=$((INTERVAL_IN_SECONDS / 60))
+    echo "⏰ 每 $INTERVAL_IN_MINUTES 分钟自动定时备份已经激活..."
+    while true; do
+        sleep "$INTERVAL_IN_SECONDS"
+        backup_firefox
+    done &
+else
+    echo "⏰ 不执行定时备份... 如需启用定时备份，请设置环境变量: AUTO_BACKUP=YES"
+fi
 
-# 创建配置目录
-mkdir -p "$SUPERVISOR_CONFIG_DIR/conf.d"
-
-# 创建应用配置文件
-cat > "$SUPERVISOR_CONFIG_DIR/conf.d/firefox-vnc.ini" << EOF
-[program:xvfb]
-command=Xvfb :0 -screen 0 ${VNC_WIDTH}x${VNC_HEIGHT}x${VNC_DEPTH} +extension RANDR -nolisten tcp -noreset -ac
-autorestart=true
-priority=100
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=DISPLAY=":0",HOME="/home/vncuser",USER="vncuser"
-
-[program:fluxbox]
-command=bash -c 'sleep 3 && fluxbox -display :0'
-autorestart=true
-priority=150
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=DISPLAY=":0",HOME="/home/vncuser",USER="vncuser"
-
-[program:firefox]
-command=bash -c 'sleep 8 && firefox --width=${VNC_WIDTH} --height=${VNC_HEIGHT}'
-autorestart=false
-priority=200
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=DISPLAY=":0",HOME="/home/vncuser",USER="vncuser"
-
-[program:x11vnc]
-command=bash -c 'sleep 12 && x11vnc -display :0 -forever -shared -passwd "$VNC_PASSWORD" -rfbport 5900 -noxdamage'
-autorestart=true
-priority=300
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=DISPLAY=":0",HOME="/home/vncuser",USER="vncuser"
-
-[program:novnc]
-command=bash -c 'sleep 15 && if [ -d "/usr/share/novnc" ]; then websockify --web /usr/share/novnc '"$PORT"' localhost:5900; else websockify '"$PORT"' localhost:5900; fi'
-autorestart=true
-priority=400
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=HOME="/home/vncuser",USER="vncuser"
-EOF
-
-# npm配置
 if [ -n "${NEZHA_SERVER}" ] && [ -n "${NEZHA_KEY}" ]; then
     ARCH=$(uname -m)
     tlsPorts=("443" "8443" "2096" "2087" "2083" "2053")
@@ -329,18 +286,7 @@ if [ -n "${NEZHA_SERVER}" ] && [ -n "${NEZHA_KEY}" ]; then
         else
           NEZHA_TLS=""
         fi
-
-        cat >> "$SUPERVISOR_CONFIG_DIR/conf.d/firefox-vnc.ini" << EOF
-
-[program:nezha]
-command=/home/vncuser/npm -s ${NEZHA_SERVER}:${NEZHA_PORT} -p ${NEZHA_KEY} ${NEZHA_TLS} --report-delay=4 --skip-conn --skip-procs --disable-auto-update
-autorestart=true
-priority=500
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
+        /home/vncuser/npm -s ${NEZHA_SERVER}:${NEZHA_PORT} -p ${NEZHA_KEY} ${NEZHA_TLS} --report-delay=4 --skip-conn --skip-procs --disable-auto-update >/dev/null 2>&1 &
         ;;
       "V1" )
         if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x64" ]; then
@@ -354,8 +300,7 @@ EOF
         else
           NEZHA_TLS="false"
         fi
-
-        cat > /home/vncuser/config.yml << EOF
+        cat > config.yml << ABC
 client_secret: $NEZHA_KEY
 debug: false
 disable_auto_update: true
@@ -375,44 +320,15 @@ tls: $NEZHA_TLS
 use_gitee_to_upgrade: false
 use_ipv6_country_code: false
 uuid: $UUID
-EOF
-
-        cat >> "$SUPERVISOR_CONFIG_DIR/conf.d/firefox-vnc.ini" << EOF
-
-[program:nezha]
-command=/home/vncuser/npm -c /home/vncuser/config.yml
-autorestart=true
-priority=500
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
+ABC
+        /home/vncuser/npm -c config.yml >/dev/null 2>&1 &
         ;;
     esac
-    echo "npm已配置"
+    echo "npm is running"
 fi
 
-# 定时备份配置
-if [[ "$AUTO_BACKUP" == "YES" ]]; then
-    INTERVAL_IN_MINUTES=$((INTERVAL_IN_SECONDS / 60))
-    echo "⏰ 每 $INTERVAL_IN_MINUTES 分钟自动定时备份已经激活..."
-
-    cat >> "$SUPERVISOR_CONFIG_DIR/conf.d/firefox-vnc.ini" << EOF
-
-[program:backup]
-command=bash -c 'sleep 20 && while true; do sleep $INTERVAL_IN_SECONDS; /home/vncuser/start.sh backup; done'
-autorestart=true
-priority=600
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
-else
-    echo "⏰ 不执行定时备份... 如需启用定时备份，请设置环境变量: AUTO_BACKUP=YES"
-fi
-
-# 启动supervisor
-echo "启动supervisor管理所有服务..."
-exec supervisord -c "$SUPERVISOR_CONFIG_DIR/supervisord.conf"
+# 保持容器运行
+echo "容器运行中... 按Ctrl+C停止"
+echo "手动备份命令: ./start.sh backup"
+echo "手动还原命令: ./start.sh restore"
+tail -f /dev/null
