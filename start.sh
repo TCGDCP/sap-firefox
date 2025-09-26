@@ -161,7 +161,7 @@ case "${1:-}" in
         exit 0
         ;;
     "help")
-        echo "🔥 Firefox VNC容器备份工具"
+        echo "🔥 Firefox VNC容器备份还原工具"
         echo "用法: ./start.sh [command]"
         echo ""
         echo "命令:"
@@ -169,14 +169,14 @@ case "${1:-}" in
         echo "  restore   - 从GitHub恢复Firefox配置"
         echo "  help      - 显示帮助信息"
         echo ""
-        echo "环境变量:"
+        echo "Firefox VNC容器环境变量:"
+        echo "  AUTO_BACKUP    - 是否开启自动备份Firefox配置到GitHub,默认NO,启用YES"
+        echo "  AUTO_RESTORE   - 是否开启开机从GitHub自动还原Firefox配置到容器,默认NO,启用YES"
         echo "  GBACKUP_USER   - GitHub用户名"
         echo "  GBACKUP_REPO   - GitHub仓库名"
         echo "  GBACKUP_TOKEN  - GitHub访问令牌"
         echo "  VNC_PASSWORD   - VNC密码 (默认: password)"
-        echo "  RESOLUTION     - 分辨率 (默认: 1280x800)"
-        echo ""
-        echo "无参数启动VNC服务"
+        echo "  RESOLUTION     - 分辨率 (默认: 720x1280)"
         exit 0
         ;;
 esac
