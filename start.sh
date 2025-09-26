@@ -193,7 +193,6 @@ echo "🚀 启动Firefox VNC服务..."
 
 # 创建必要的目录
 mkdir -p /home/vncuser/.vnc
-mkdir -p "$BACKUP_DIR"
 chmod 700 /home/vncuser/.vnc
 
 # 设置VNC密码
