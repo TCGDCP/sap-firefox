@@ -8,11 +8,11 @@ RUN apk update && \
         supervisor \
         xvfb \
         x11vnc \
+        novnc \
         fluxbox \
+        websockify \
         font-dejavu \
         firefox \
-        websockify \
-        novnc \
         bash \
         git \
         rsync && \
