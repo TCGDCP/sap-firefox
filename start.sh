@@ -410,5 +410,5 @@ else
 fi
 
 # 启动supervisor
-echo "启动supervisor管理所有服务..."
+echo "🚀 启动supervisor管理所有服务..."
 exec supervisord -c "$SUPERVISOR_CONFIG_DIR/supervisord.conf"
