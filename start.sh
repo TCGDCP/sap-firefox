@@ -185,7 +185,7 @@ esac
 if [[ "$AUTO_RESTORE" == "YES" ]]; then
     restore_firefox
     sleep 10
-else
+elif [[ "$AUTO_RESTORE" == "NO" ]]; then
    echo "⏰ 不执行自动恢复... 如需启用恢复，请设置环境变量: AUTO_RESTORE=YES"
 fi
 
@@ -405,7 +405,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 EOF
-else
+elif [[ "$AUTO_BACKUP" == "NO" ]]; then
     echo "⏰ 不执行定时备份... 如需启用定时备份，请设置环境变量: AUTO_BACKUP=YES"
 fi
 
