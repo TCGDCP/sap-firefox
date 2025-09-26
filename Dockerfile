@@ -24,8 +24,10 @@ RUN apk update && \
     # 创建非特权用户
     adduser -D -s /bin/bash vncuser && \
     # 设置firefox持久化目录
-    mkdir -p /config && \
-    chown -R vncuser:vncuser /config
+    mkdir -p /home/vncuser/.mozilla/firefox && \
+    chown -R vncuser:vncuser /home/vncuser/.mozilla/firefox && \
+    # 创建/config符号链接，指向Firefox配置目录
+    ln -sf /home/vncuser/.mozilla/firefox /config
 
 # 复制启动脚本并设置权限
 COPY start.sh /home/vncuser/start.sh

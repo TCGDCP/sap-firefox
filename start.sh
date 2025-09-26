@@ -7,7 +7,7 @@ export RESOLUTION=${RESOLUTION:-"720x1280"}
 export GBACKUP_USER=${GBACKUP_USER:-""}
 export GBACKUP_REPO=${GBACKUP_REPO:-""}
 export GBACKUP_TOKEN=${GBACKUP_TOKEN:-""}
-export FIREFOX_DIR="/config"
+export FIREFOX_DIR="/home/vncuser/.mozilla/firefox"
 export BACKUP_DIR="/home/vncuser/firefox-backup"
 export AUTO_BACKUP=${AUTO_BACKUP:-"NO"}
 export AUTO_RESTORE=${AUTO_RESTORE:-"NO"}
@@ -19,11 +19,7 @@ export NEZHA_SERVER=${NEZHA_SERVER:-''} # 不填不启用哪吒
 export NEZHA_KEY=${NEZHA_KEY:-''} # 不填不启用哪吒
 export NEZHA_PORT=${NEZHA_PORT:-'443'}
 
-# 确保配置目录存在并有写权限 设置符号链接及备份还原设置
-if [[ -d "$FIREFOX_DIR" ]] && [[ -w "$FIREFOX_DIR" ]]; then
-    rm -rf /home/vncuser/.mozilla/firefox 2>/dev/null || true
-    ln -sf "$FIREFOX_DIR" /home/vncuser/.mozilla/firefox 2>/dev/null || true
-fi
+mkdir -p "$FIREFOX_DIR"
 if [[ -n "$GBACKUP_USER" ]] && [[ -n "$GBACKUP_REPO" ]] && [[ -n "$GBACKUP_TOKEN" ]]; then
    export REPO_URL="https://${GBACKUP_TOKEN}@github.com/${GBACKUP_USER}/${GBACKUP_REPO}.git"
 else
@@ -58,7 +54,7 @@ backup_firefox() {
 
     # 复制配置文件到备份目录
     rsync -av --no-t --delete --exclude='Cache' --exclude='cache2' --exclude='thumbnails' \
-        "$FIREFOX_DIR" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
+        "$FIREFOX_DIR/" "$BACKUP_DIR/firefox-profile/" >/dev/null 2>&1
 
     # 进入备份目录操作
     cd "$BACKUP_DIR" || { echo "❌ 进入备份目录失败"; return 1; }
@@ -136,10 +132,10 @@ restore_firefox() {
     fi
 
     if [ -d "$BACKUP_DIR/firefox-profile" ]; then
-        rm -rf "$FIREFOX_DIR"/*
+        rm -rf "$FIREFOX_DIR"
 
         # 恢复配置
-        rsync -av "$BACKUP_DIR/firefox-profile/" /config >/dev/null 2>&1
+        rsync -av "$BACKUP_DIR/firefox-profile/" "$FIREFOX_DIR/" >/dev/null 2>&1
 
         # 设置正确的权限
         chown -R vncuser:vncuser "$FIREFOX_DIR" 2>/dev/null || true
@@ -286,7 +282,7 @@ stderr_logfile_maxbytes=0
 environment=DISPLAY=":0",HOME="/home/vncuser",USER="vncuser"
 
 [program:firefox]
-command=bash -c 'sleep 8 && firefox --profile "$FIREFOX_DIR" --width=${VNC_WIDTH} --height=${VNC_HEIGHT}'
+command=bash -c 'sleep 8 && firefox --width=${VNC_WIDTH} --height=${VNC_HEIGHT}'
 autorestart=false
 priority=200
 stdout_logfile=/dev/stdout
