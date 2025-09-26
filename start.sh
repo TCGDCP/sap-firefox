@@ -33,10 +33,6 @@ VNC_WIDTH="${RES[0]}"
 VNC_HEIGHT="${RES[1]}"
 VNC_DEPTH="24"
 
-# 计算Firefox窗口大小（全屏）
-FIREFOX_WIDTH=$VNC_WIDTH
-FIREFOX_HEIGHT=$VNC_HEIGHT
-
 # Firefox 备份
 backup_firefox() {
     [[ -z "$REPO_URL" ]] && { echo "❌ 未配置GitHub仓库"; return 0; }
