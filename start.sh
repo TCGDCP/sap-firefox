@@ -190,7 +190,7 @@ if [[ "$AUTO_RESTORE" == "YES" ]]; then
     restore_firefox
     sleep 10
 else
-   ⏰ 不执行自动恢复... 如需启用恢复，请设置环境变量: AUTO_RESTORE=YES
+   ⏰ echo "不执行自动恢复... 如需启用恢复，请设置环境变量: AUTO_RESTORE=YES"
 fi
 
 echo "🚀 启动Firefox VNC服务..."
